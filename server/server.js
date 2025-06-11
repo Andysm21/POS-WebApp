@@ -11,6 +11,8 @@ import inventoryRoutes from './routes/inventoryRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import shiftRoutes from './routes/shiftRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
+import discountCodeRoutes from './routes/discountCodeRoutes.js'
+
 dotenv.config()
 const prisma = new PrismaClient()
 const app = express()
@@ -30,7 +32,7 @@ app.use('/inventory', inventoryRoutes)
 app.use('/users', userRoutes)
 app.use('/shifts', shiftRoutes)
 app.use('/dashboard', dashboardRoutes)
-
+app.use('/discount-codes', discountCodeRoutes)
 app.listen(process.env.PORT, () => {
   console.log(`Server running on http://localhost:${process.env.PORT}`)
 })

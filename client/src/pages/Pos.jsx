@@ -6,6 +6,10 @@ import ProductCard from '../components/ProductCard'
 
 
 function Pos() {
+    const [discount, setDiscount] = useState(0)
+    const [discountCodes, setDiscountCodes] = useState([])
+    const [selectedCode, setSelectedCode] = useState(null)
+    const [discountAmount, setDiscountAmount] = useState(0)
     const [cart, setCart] = useState([])
     const [lastSale, setLastSale] = useState(null)
     const receiptRef = useRef()
@@ -37,6 +41,9 @@ function Pos() {
         return () => window.removeEventListener('resize', handleResize)
     }, [])
     useEffect(() => {
+        api.get('/discount-codes').then(discountRes => {
+            setDiscountCodes(discountRes.data.filter(dc => dc.active))
+        })
         const load = async () => {
             const [catRes, prodRes] = await Promise.all([
                 api.get('/categories'),
@@ -90,24 +97,18 @@ function Pos() {
                 )
         )
     }
-
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: isKiosk ? 'column' : 'row',
-            padding: isKiosk ? '1rem' : '2rem',
-            fontSize: isKiosk ? '1.5rem' : '1rem'
-          }}>
-                        {isKiosk && (
-                <button onClick={goFullscreen} style={{ position: 'fixed', top: 10, right: 10 }}>⛶ Fullscreen</button>
+        <div className={`pos__container${isKiosk ? ' pos__container--kiosk' : ''}`}>
+            {isKiosk && (
+                <button className="pos__fullscreen-btn" onClick={goFullscreen}>⛶ Fullscreen</button>
             )}
             {!activeShift && (
-                <div>
+                <div className="pos__shift">
                     <h3>Start Shift</h3>
                     <input
                         placeholder="Opening Cash"
                         value={openCash}
-                        onChange={(e) => setOpenCash(e.target.value)}
+                        onChange={e => setOpenCash(e.target.value)}
                     />
                     <button
                         onClick={async () => {
@@ -122,66 +123,55 @@ function Pos() {
                     </button>
                 </div>
             )}
-
             {activeShift && (
-                <div style={{ display: 'flex', width: '100%' }}>
+                <div className="pos__main">
                     {/* Product/Category Section */}
-                    <div style={{ flex: 2, paddingRight: '2rem' }}>
+                    <div className="pos__products">
                         {view === 'categories' && (
                             <>
                                 <h2>Select Category</h2>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div className="pos__categories-list">
                                     {categories.map(cat => (
                                         <div
                                             key={cat.id}
-                                            onClick={() => handleCategoryClick(cat)}
-                                            style={{
-                                                border: '1px solid #ccc',
-                                                padding: '1rem',
-                                                width: '150px',
-                                                textAlign: 'center',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
+                                            className="pos__category"
+                                            onClick={() => handleCategoryClick(cat)}>
                                             <h4>{cat.name}</h4>
                                         </div>
                                     ))}
                                 </div>
                             </>
                         )}
-
                         {view === 'products' && (
                             <>
-                                <button onClick={() => setView('categories')}>← Back</button>
+                                <button className="pos__back-btn" onClick={() => setView('categories')}>← Back</button>
                                 <h2>{activeCategory?.name}</h2>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                                {visibleProducts.map(product => (
-//   <ProductCard key={product.id} product={product} onAdd={addToCart} />
-<ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={addToCart}
-                  isSelected={cart.some((item) => item.id === product.id)}
-                />
-))}
+                                <div className="pos__product-list">
+                                    {visibleProducts.map(product => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={product}
+                                            onAddToCart={addToCart}
+                                            isSelected={cart.some((item) => item.id === product.id)}
+                                        />
+                                    ))}
                                 </div>
                             </>
                         )}
                     </div>
-
                     {/* Cart Section */}
-                    <div style={{ flex: 1 }}>
+                    <div className="pos__cart">
                         <h2>Cart</h2>
-                        {cart.length === 0 && <p>No items in cart</p>}
+                        {cart.length === 0 && <p className="pos__cart-empty">No items in cart</p>}
                         {cart.map(item => (
-                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <div key={item.id} className="pos__cart-item">
                                 <div>
                                     <strong>{item.name}</strong><br />
                                     <small>${item.price.toFixed(2)} ×</small>
                                     <input
                                         type="number"
                                         min="0"
-                                        style={{ width: '50px', marginLeft: '5px' }}
+                                        className="pos__cart-qty"
                                         value={item.quantity}
                                         onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
                                     />
@@ -190,8 +180,38 @@ function Pos() {
                             </div>
                         ))}
                         <hr />
-                        <h3>Total: ${total.toFixed(2)}</h3>
+                        <div>
+                            <label>
+                                Discount Code:
+                                <select
+                                    value={selectedCode || ''}
+                                    onChange={e => {
+                                        const code = e.target.value
+                                        setSelectedCode(code)
+                                        const found = discountCodes.find(d => d.code === code)
+                                        const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+                                        if (!found) {
+                                            setDiscountAmount(0)
+                                        } else if (found.type === 'percent') {
+                                            setDiscountAmount((subtotal * found.value) / 100)
+                                        } else {
+                                            setDiscountAmount(found.value)
+                                        }
+                                    }}
+                                >
+                                    <option value="">No Discount</option>
+                                    {discountCodes.map(code => (
+                                        <option key={code.id} value={code.code}>
+                                            {code.code} ({code.type === 'percent' ? `${code.value}%` : `$${code.value}`})
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <p>Discount: ${discountAmount.toFixed(2)}</p>
+                        <h3>Total After Discount: ${Math.max(0, total - discountAmount).toFixed(2)}</h3>
                         <button
+                            className="pos__checkout-btn"
                             disabled={cart.length === 0}
                             onClick={() => {
                                 setShowCheckout(true)
@@ -202,7 +222,7 @@ function Pos() {
                             Checkout
                         </button>
                         {!isKiosk && (
-                            <div style={{ marginTop: '2rem' }}>
+                            <div className="pos__shift-summary">
                                 <p><strong>Shift ID:</strong> {activeShift.id}</p>
                                 <p><strong>Opened At:</strong> {new Date(activeShift.openedAt).toLocaleString()}</p>
                                 <input
@@ -219,12 +239,12 @@ function Pos() {
                                                 notes: ''
                                             })
                                             alert(`✅ Shift Closed
-
-🧾 Total Sales: $${res.data.totalSales.toFixed(2)}
-💰 Expected Cash: $${res.data.expectedCash.toFixed(2)}
-📦 Actual Cash: $${parseFloat(closeCash).toFixed(2)}
-🔍 Discrepancy: $${res.data.discrepancy.toFixed(2)}
-`)
+    
+    🧾 Total Sales: $${res.data.totalSales.toFixed(2)}
+    💰 Expected Cash: $${res.data.expectedCash.toFixed(2)}
+    📦 Actual Cash: $${parseFloat(closeCash).toFixed(2)}
+    🔍 Discrepancy: $${res.data.discrepancy.toFixed(2)}
+    `)
                                             setActiveShift(null)
                                             setCloseCash('')
                                         } catch (err) {
@@ -237,40 +257,28 @@ function Pos() {
                                 </button>
                             </div>
                         )}
-
                     </div>
                 </div>
             )}
-
             {/* Hidden Receipt for Printing */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 <Receipt ref={receiptRef} sale={lastSale} />
             </div>
-
             {/* Printable Receipt Preview */}
             {lastSale && (
-                <div style={{
-                    position: 'fixed', right: 20, bottom: 20,
-                    background: '#fff', padding: 20, borderRadius: 8,
-                    boxShadow: '0 2px 8px #0002', zIndex: 2000
-                }}>
+                <div className="pos__receipt-preview">
                     <Receipt sale={lastSale} />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <div className="pos__receipt-actions">
                         <button onClick={handlePrint}>🖨 Print Receipt</button>
                         <button onClick={() => setLastSale(null)}>Close</button>
                     </div>
                 </div>
             )}
-
             {/* Checkout Modal */}
             {showCheckout && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.6)', display: 'flex',
-                    justifyContent: 'center', alignItems: 'center', zIndex: 1000
-                }}>
-                    <div style={{ background: '#fff', padding: '2rem', width: '300px', borderRadius: '8px' }}>
-                        <h3>Total Due: ${total.toFixed(2)}</h3>
+                <div className="pos__modal-overlay">
+                    <div className="pos__modal">
+                        <h3>Total Due: ${Math.max(0,total.toFixed(2)- discountAmount)}</h3>
                         <label>
                             Customer Paid:
                             <input
@@ -279,15 +287,17 @@ function Pos() {
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value || '0')
                                     setAmountPaid(val)
-                                    setChangeDue(val - total)
+                                    setChangeDue(val - Math.max(0, total - discountAmount))
                                 }}
                                 autoFocus
                             />
                         </label>
                         {changeDue !== null && (
-                            <p>Change to Return: ${changeDue < 0 ? 'Not enough' : changeDue.toFixed(2)}</p>
+                            <p>
+                                Change to Return: {changeDue < 0 ? 'Not enough' : `$${changeDue.toFixed(2)}`}
+                            </p>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
+                        <div className="pos__modal-actions">
                             <button onClick={() => setShowCheckout(false)}>Cancel</button>
                             <button
                                 disabled={changeDue < 0}
@@ -298,8 +308,10 @@ function Pos() {
                                             userId: 1,
                                             items: cart.map(({ id, quantity, price }) => ({ id, quantity, price })),
                                             paidAmount: parseFloat(amountPaid),
-                                            change: parseFloat(changeDue)
-                                        })
+                                            change: parseFloat(changeDue),
+                                            discountAmount,
+                                            discountCode: selectedCode || null
+                                          })
                                         const receipt = await api.get(`/sales/${res.data.id}/receipt`)
                                         setLastSale(receipt.data)
                                         setCart([])
@@ -322,6 +334,156 @@ function Pos() {
                     </div>
                 </div>
             )}
+            <style>{`
+            .pos__container {
+              display: flex;
+              flex-direction: row;
+              padding: 2rem;
+              gap: 2rem;
+              font-size: 1rem;
+              background: #f2f6fa;
+              min-height: 100vh;
+            }
+            .pos__container--kiosk {
+              flex-direction: column;
+              padding: 1rem;
+              font-size: 1.28rem;
+            }
+            .pos__fullscreen-btn {
+              position: fixed;
+              top: 10px;
+              right: 10px;
+              background: #fff;
+              border: 1px solid #ddd;
+              padding: 0.4rem 1rem;
+              border-radius: 8px;
+              font-size: 1.1rem;
+              cursor: pointer;
+              z-index: 10;
+              box-shadow: 0 2px 8px #0001;
+            }
+            .pos__main {
+              display: flex;
+              width: 100%;
+              gap: 2rem;
+            }
+            .pos__products {
+              flex: 2;
+              padding-right: 2rem;
+            }
+            .pos__categories-list {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 1rem;
+            }
+            .pos__category {
+              border: 1.5px solid #bbb;
+              border-radius: 8px;
+              padding: 1.2rem;
+              width: 160px;
+              text-align: center;
+              cursor: pointer;
+              background: #fff;
+              transition: box-shadow .2s, border .2s;
+              box-shadow: 0 1px 6px #0001;
+            }
+            .pos__category:hover {
+              border: 1.5px solid #3d87ff;
+              box-shadow: 0 2px 12px #3d87ff40;
+            }
+            .pos__back-btn {
+              margin-bottom: 1rem;
+              background: none;
+              border: none;
+              font-size: 1.1rem;
+              color: #4e8cff;
+              cursor: pointer;
+            }
+            .pos__product-list {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 1rem;
+            }
+            .pos__cart {
+              flex: 1;
+              background: #fff;
+              border-radius: 12px;
+              padding: 1.5rem;
+              box-shadow: 0 2px 16px #0001;
+              min-width: 300px;
+            }
+            .pos__cart-empty {
+              color: #aaa;
+              text-align: center;
+            }
+            .pos__cart-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 0.7rem;
+              gap: 1rem;
+            }
+            .pos__cart-qty {
+              width: 50px;
+              margin-left: 6px;
+            }
+            .pos__checkout-btn {
+              width: 100%;
+              margin-top: 1rem;
+              background: #4e8cff;
+              color: #fff;
+              border: none;
+              border-radius: 8px;
+              padding: 0.8rem 0;
+              font-size: 1.08rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: background .18s;
+            }
+            .pos__checkout-btn:disabled {
+              background: #b1c9f6;
+              cursor: not-allowed;
+            }
+            .pos__shift-summary {
+              margin-top: 2rem;
+            }
+            .pos__receipt-preview {
+              position: fixed;
+              right: 20px;
+              bottom: 20px;
+              background: #fff;
+              padding: 20px;
+              border-radius: 12px;
+              box-shadow: 0 2px 16px #0002;
+              z-index: 2000;
+            }
+            .pos__receipt-actions {
+              display: flex;
+              gap: 12px;
+              margin-top: 13px;
+            }
+            .pos__modal-overlay {
+              position: fixed;
+              top: 0; left: 0; right: 0; bottom: 0;
+              background: rgba(0,0,0,0.6);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              z-index: 1000;
+            }
+            .pos__modal {
+              background: #fff;
+              padding: 2rem;
+              width: 340px;
+              border-radius: 12px;
+              box-shadow: 0 2px 16px #0001;
+            }
+            .pos__modal-actions {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 1.5rem;
+            }
+          `}</style>
         </div>
     )
 }
