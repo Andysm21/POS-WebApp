@@ -14,7 +14,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js'
 import discountCodeRoutes from './routes/discountCodeRoutes.js'
 const allowedOrigins = [
   'http://localhost:5000', // for local dev
-  'https://pos-web-51wg7assr-epicmc2000-gmailcoms-projects.vercel.app/' // replace with actual Vercel domain
+  'https://pos-web-51wg7assr-epicmc2000-gmailcoms-projects.vercel.app' // replace with actual Vercel domain
 ]
 dotenv.config()
 const prisma = new PrismaClient()
