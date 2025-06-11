@@ -7,7 +7,11 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     proxy: {
-    '/api': 'https://pos-webapp.railway.internal'
+          '/api': {
+        target: 'https://your-backend.railway.app', // replace with your actual domain
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '')
+      }
   }
   }
 })
