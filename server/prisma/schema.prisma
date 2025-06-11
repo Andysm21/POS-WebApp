@@ -1,0 +1,84 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  role          String
+  sales         Sale[]
+  inventoryLogs InventoryLog[] // <-- Add this line
+  Shift         Shift[]
+}
+
+model Product {
+  id            Int            @id @default(autoincrement())
+  name          String
+  price         Float
+  stock         Int
+  category      Category       @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  saleItems     SaleItem[]
+  inventoryLogs InventoryLog[] // <-- Add this line
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model Sale {
+  id         Int        @id @default(autoincrement())
+  total      Float
+  user       User       @relation(fields: [userId], references: [id])
+  userId     Int
+  paidAmount Float      @default(0)
+  change     Float      @default(0)
+  createdAt  DateTime   @default(now())
+  items      SaleItem[]
+  Shift      Shift?     @relation(fields: [shiftId], references: [id])
+  shiftId    Int?
+}
+
+model Shift {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  openingCash Float
+  closingCash Float?
+  expectedCash Float? 
+  discrepancy  Float?
+  notes       String?
+  sales       Sale[]
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  saleId    Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+  unitPrice Float
+}
+
+model InventoryLog {
+  id        Int      @id @default(autoincrement())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
+  change    Int
+  reason    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime @default(now())
+}
