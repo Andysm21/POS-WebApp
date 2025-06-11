@@ -12,6 +12,7 @@ import Sidebar from './components/Sidebar'
 import Users from './pages/Users'
 import ShiftReport from './pages/ShiftsReport.jsx'
 import Dashboard from './pages/Dashboard'
+import DiscountCodes from './pages/DiscountCodes'
 
 
 function parseJwt(token) {
@@ -99,6 +100,7 @@ function App() {
                                 <Inventory />
                             </RequireAdmin>
                         } />
+                        <Route path="/discount-codes" element={<RequireAdmin user={user}><DiscountCodes /></RequireAdmin>} />
                         <Route path="/admin/users" element={
                             <RequireAdmin user={user}>
                                 <Users />

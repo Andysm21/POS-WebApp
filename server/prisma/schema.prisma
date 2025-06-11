@@ -46,8 +46,19 @@ model Sale {
   items      SaleItem[]
   Shift      Shift?     @relation(fields: [shiftId], references: [id])
   shiftId    Int?
+  discountAmount Float?
+  discountCode   DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  discountCodeId Int?
 }
-
+model DiscountCode {
+  id        Int     @id @default(autoincrement())
+  code      String  @unique
+  type      String  
+  value     Float
+  active    Boolean @default(true)
+  createdAt DateTime @default(now())
+  sales     Sale[]   
+}
 model Shift {
   id          Int       @id @default(autoincrement())
   user        User      @relation(fields: [userId], references: [id])

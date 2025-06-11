@@ -1,64 +1,122 @@
-// import React from 'react'
-
-// const ProductCard = React.memo(({ product, onAdd }) => (
-//   <div
-//     style={{
-//       border: '1px solid #ccc',
-//       padding: '1rem',
-//       width: '150px',
-//       textAlign: 'center',
-//       cursor: 'pointer'
-//     }}
-//     onClick={() => onAdd(product)}
-//   >
-//     <h4>{product.name}</h4>
-//     <p>${product.price.toFixed(2)}</p>
-//     <button style={{ marginTop: '0.5rem' }}>Add</button>
-//   </div>
-// ))
-
-// export default ProductCard
-
-
 export default function ProductCard({ product, onAddToCart, isSelected }) {
-    return (
-      <button
-        onClick={() => onAddToCart(product)}
-        className={`
-          relative w-full aspect-square rounded-xl border-2 transition-all duration-200 
-          ${
-            isSelected
-              ? "border-green-500 bg-green-50 shadow-lg scale-105"
-              : "border-gray-200 bg-white hover:border-green-300 hover:shadow-md"
-          }
-          active:scale-95 touch-manipulation
-        `}
-      >
-        <div className="p-4 h-full flex flex-col justify-between">
-          <div className="flex-1 flex items-center justify-center">
-            {product.image ? (
-              <img
-                src={product.image || "/placeholder.svg"}
-                alt={product.name}
-                className="w-16 h-16 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🍽️</span>
-              </div>
-            )}
-          </div>
-  
-          <div className="text-center">
-            <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">{product.name}</h3>
-            <p className="text-lg font-bold text-green-600">{product.price.toFixed(2)} L.E.</p>
-            {product.stock <= 5 && (
-              <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
-                Low Stock: {product.stock}
-              </span>
-            )}
-          </div>
+  return (
+    <button
+      onClick={() => onAddToCart(product)}
+      className={`product-card${isSelected ? " product-card--selected" : ""}`}
+      type="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+    >
+      <div className="product-card__content">
+        <div className="product-card__img-wrap">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-card__img"
+            />
+          ) : (
+            <div className="product-card__img product-card__img--placeholder">
+              <span role="img" aria-label="Food" style={{ fontSize: 32 }}>🍽️</span>
+            </div>
+          )}
         </div>
-      </button>
-    )
-  }
+        <div className="product-card__info">
+          <h3 className="product-card__name">{product.name}</h3>
+          <p className="product-card__price">{product.price.toFixed(2)} L.E.</p>
+          {product.stock <= 5 && (
+            <span className="product-card__lowstock">
+              Low Stock: {product.stock}
+            </span>
+          )}
+        </div>
+      </div>
+      <style>{`
+        .product-card {
+          position: relative;
+          width: 170px;
+          min-height: 210px;
+          border: 2px solid #e4e8ed;
+          border-radius: 14px;
+          background: #fff;
+          box-shadow: 0 2px 12px #0001;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+          outline: none;
+          cursor: pointer;
+          transition: border 0.18s, box-shadow 0.18s, transform 0.13s;
+        }
+        .product-card:focus,
+        .product-card:hover {
+          border: 2px solid #3db36b;
+          box-shadow: 0 4px 16px #3db36b30;
+        }
+        .product-card:active {
+          transform: scale(0.97);
+        }
+        .product-card--selected {
+          border: 2.5px solid #1ca700;
+          background: #e7f9ec;
+          box-shadow: 0 2px 16px #1ca70030;
+          transform: scale(1.045);
+        }
+        .product-card__content {
+          padding: 1.3rem 1rem 1.2rem 1rem;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          gap: 0.7rem;
+        }
+        .product-card__img-wrap {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 0.6rem;
+        }
+        .product-card__img {
+          width: 56px;
+          height: 56px;
+          object-fit: cover;
+          border-radius: 9px;
+          background: #f8fafb;
+        }
+        .product-card__img--placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f2f5f7;
+          color: #bbb;
+        }
+        .product-card__info {
+          text-align: center;
+        }
+        .product-card__name {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.2rem;
+          color: #222;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .product-card__price {
+          color: #1ca700;
+          font-size: 1.17rem;
+          font-weight: bold;
+          margin-bottom: 0.25rem;
+        }
+        .product-card__lowstock {
+          display: inline-block;
+          background: #ffe8e8;
+          color: #c70000;
+          font-size: 0.79rem;
+          border-radius: 12px;
+          padding: 2px 9px;
+          margin-top: 0.18rem;
+          font-weight: 500;
+        }
+      `}</style>
+    </button>
+  );
+}

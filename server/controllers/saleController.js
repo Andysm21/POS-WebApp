@@ -1,11 +1,25 @@
 import { PrismaClient } from '@prisma/client'
-import { sendStockAlert } from '../utils/mailer.js'
+import { sendStockAlert } from '../utils/notification.js'
 
 const prisma = new PrismaClient()
 
 export const createSale = async (req, res) => {
-  const { userId , items, paidAmount = null, change = null } = req.body 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const { userId, items, paidAmount = null, change = null, discountAmount = 0, discountCode = null } = req.body
+  const baseTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const total = Math.max(0, baseTotal - discountAmount)
+  let discountCodeId = null
+  if (discountCode) {
+    const existingCode = await prisma.discountCode.findUnique({
+      where: { code: discountCode }
+    })
+  
+    if (existingCode) {
+      discountCodeId = existingCode.id
+    }
+  }
+  if (discountCode && !discountCodeId) {
+    return res.status(400).json({ error: 'Invalid discount code' })
+  }
   const activeShift = await prisma.shift.findFirst({
     where: { userId, closedAt: null }
   })
@@ -14,6 +28,8 @@ export const createSale = async (req, res) => {
     const sale = await prisma.sale.create({
       data: {
         total,
+        discountAmount,
+        discountCodeId,
         userId,
         paidAmount,
         change,
