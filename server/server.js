@@ -12,7 +12,6 @@ import userRoutes from './routes/userRoutes.js'
 import shiftRoutes from './routes/shiftRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import discountCodeRoutes from './routes/discountCodeRoutes.js'
-import cors from 'cors'
 const allowedOrigins = [
   'http://localhost:5000', // for local dev
   'https://pos-web-66vb54fd9-epicmc2000-gmailcoms-projects.vercel.app/' // replace with actual Vercel domain
