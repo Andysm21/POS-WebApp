@@ -8,7 +8,7 @@ export default defineConfig({
     historyApiFallback: true,
     proxy: {
           '/api': {
-        target: 'http://pos-webapp-production.up.railway.app:5000/', // replace with your actual domain
+        target: 'http://pos-webapp-production.up.railway.app:5000/', 
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api/, '')
       }
